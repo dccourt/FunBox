@@ -15,6 +15,32 @@ using namespace daisy;
 using namespace daisysp;
 using namespace funbox; 
 
+#include "../../funbox_display.h"
+
+const char* knobNames[] = {
+    "Decay",
+    "Low Freq",
+    "High Freq",
+    "Mix",
+    "Low Shelf",
+    "High Shelf",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Lushness",
+    "Modulation",
+    "PreDelay"
+};
+
+const char* switchValueNames[] = {
+    "Low", "Medium", "High",
+    "Low", "Medium", "High",
+    "None", "100 msec", "200 msec"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 ::daisy::Parameter rdecay, mix, lowfreq, lowshelf, highfreq, highshelf, expression;
@@ -631,6 +657,17 @@ int main(void)
     hw.Init();
     samplerate = hw.AudioSampleRate();
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(1, 0.3f, 60.0f, 1, "sec");
+    display.SetKnobRange(4, -1.0f, 1.0f);
+    display.SetKnobRange(5, -100.0f, 0.0f, 1, "dB");
+    display.SetKnobRange(6, -100.0f, 0.0f, 1, "dB");
+    display.Fill(false); // Clear screen
+    display.SetBanner("Jupiter");
+    display.Update();
+
     AudioLib::ValueTables::Init();
     CloudSeed::FastSin::Init();
 
@@ -724,12 +761,20 @@ int main(void)
 
 
         if(trigger_save) {
-			
+			display.IndicateSaving();
 	        SavedSettings.Save(); // Writing locally stored settings to the external flash
 	        trigger_save = false;
             blink = 0;
 	    }
 
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();
+        
 	    System::Delay(100);
     }
 }

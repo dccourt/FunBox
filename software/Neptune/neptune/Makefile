@@ -12,6 +12,7 @@ OPT=-Os
 
 # Sources
 CPP_SOURCES = neptune.cpp
+CPP_SOURCES += ../../funbox_display.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../../libDaisy

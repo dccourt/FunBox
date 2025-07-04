@@ -3,7 +3,8 @@ TARGET = jupiter
 
 USE_DAISYSP_LGPL = 1
 
-#APP_TYPE = BOOT_SRAM 
+# Needs to be SRAM to support the display - just too large otherwise.
+APP_TYPE = BOOT_SRAM
 
 # Compiler options
 #OPT = -O1
@@ -11,7 +12,7 @@ OPT=-Os
 
 
 # Sources
-CPP_SOURCES = jupiter.cpp
+CPP_SOURCES = jupiter.cpp ../../funbox_display.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../../libDaisy

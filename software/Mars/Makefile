@@ -11,7 +11,7 @@ OPT=-Os
 
 
 # Sources
-CPP_SOURCES = mars.cpp ImpulseResponse/ImpulseResponse.cpp ImpulseResponse/dsp.cpp
+CPP_SOURCES = mars.cpp ImpulseResponse/ImpulseResponse.cpp ImpulseResponse/dsp.cpp ../funbox_display.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy

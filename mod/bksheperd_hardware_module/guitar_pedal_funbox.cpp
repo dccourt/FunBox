@@ -4,7 +4,7 @@ using namespace bkshepherd;
 
 static const int s_switchParamCount = 2;
 static const PreferredSwitchMetaData s_switchMetaData[s_switchParamCount] = {{sfType: SpecialFunctionType::Bypass, switchMapping: 0},
-                                                                            {sfType: SpecialFunctionType::TapTempo, switchMapping: 1}}; 
+                                                                            {sfType: SpecialFunctionType::Alternate, switchMapping: 1}}; 
 
 GuitarPedalFunbox::GuitarPedalFunbox() : BaseHardwareModule()
 {
@@ -18,9 +18,9 @@ GuitarPedalFunbox::~GuitarPedalFunbox()
 
 }
 
-void GuitarPedalFunbox::Init(bool boost)
+void GuitarPedalFunbox::Init(size_t blockSize, bool boost)
 {
-    BaseHardwareModule::Init(boost);
+    BaseHardwareModule::Init(blockSize, boost);
 
     m_supportsStereo = true;
 

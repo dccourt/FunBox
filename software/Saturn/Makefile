@@ -2,10 +2,11 @@
 TARGET = saturn
 
 # Sources
-CPP_SOURCES = saturn.cpp
+CPP_SOURCES = saturn.cpp ../funbox_display.cpp
 
 #OPT = -O1
-OPT = -Ofast
+# OPT = -Ofast
+OPT = -Os
 #OPT ?= -O3
 #OPT = -Os
 

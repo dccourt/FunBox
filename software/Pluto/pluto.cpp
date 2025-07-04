@@ -17,6 +17,42 @@ using namespace daisy;
 using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
 
+#include "../funbox_display.h"
+
+const char* knobNames[] = {
+    "Level A",
+    "Modifier A",
+    "Level B",
+    "Speed A",
+    "Modifier B",
+    "Speed B",
+    "Expression"
+};
+
+const char* knobNamesReverb[] = {
+    "Level A",
+    "Revrb Time",
+    "Level B",
+    "Speed A",
+    "Revrb Damp",
+    "Speed B",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Speed Mode",
+    "Effect",
+    "Rec Mode"
+};
+
+const char* switchValueNames[] = {
+    "Smooth", "Stepped", "Random",
+    "Stability", "Filter", "Reverb",
+    "Normal", "Single", "FripperTrn"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 Parameter levelA, modA, levelB, speedA, modB, speedB, expression;
@@ -104,11 +140,14 @@ void updateSwitch2() // left=, center=, right=
 {
     if ((pswitch2[0] == true && !midi_control[10]) || ( midi_control[10] && midi_control[11] == true)) {  // left
         switch2_action = 0;
+        display.SetKnobNames(6, knobNames);
     } else if ((pswitch2[1] == true && !midi_control[10]) || ( midi_control[10] && midi_control[12] == true)) {  // right
         switch2_action = 2;
+        display.SetKnobNames(6, knobNamesReverb);
 
     } else {   // center
         switch2_action = 1;
+        display.SetKnobNames(6, knobNames);
     }    
 }
 
@@ -826,6 +865,17 @@ int main(void)
                                                                         // ReverbSC doesn't work running at 96kHz, TODO look into getting this working
     samplerate = hw.AudioSampleRate();  
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(1, 0.0f, 2.0f, 1, "x");
+    display.SetKnobRange(3, 0.0f, 2.0f, 1, "x");
+    display.SetKnobRange(4, -1.0f, 1.0f);
+    display.SetKnobRange(6, -1.0f, 1.0f);
+    display.Fill(false); // Clear screen
+    display.SetBanner("Pluto");
+    display.Update();
+
     hw.SetAudioBlockSize(48);
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
@@ -937,5 +987,13 @@ int main(void)
             HandleMidiMessage(hw.midi.PopEvent());
         }
 
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();        
+        
     }
 }

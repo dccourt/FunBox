@@ -18,6 +18,32 @@ using namespace daisy;
 using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
 
+#include "../funbox_display.h"
+
+const char* knobNames[] = {
+    "Size",
+    "Mix",
+    "Pitch",
+    "Feedback",
+    "Width",
+    "Speed",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Grain Mode",
+    "Grn Envelp",
+    "Synth Mode"
+};
+
+const char* switchValueNames[] = {
+    "Octave Up", "Octave Dn", "Both",
+    "Smooth", "Slow Atk", "Fast Atk",
+    "None", "Granular", "FM Synth"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 Parameter grainsize, speed, pitch, mix, feedback, width, expression;
@@ -680,6 +706,18 @@ int main(void)
     hw.Init(true);
     samplerate = hw.AudioSampleRate();
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(1, 1.0f, 300.0f, 0, "ms");
+    display.SetKnobRange(2, -1.0f, 1.0f);
+    display.SetKnobRange(3, -1.0f, 1.0f);
+    display.SetKnobRange(5, 0.0f, 50.0f, 0, "msec");
+    display.SetKnobRange(6, -2.0f, 2.0f, 1, "x");
+    display.Fill(false); // Clear screen
+    display.SetBanner("Uranus");
+    display.Update();
+
     hw.SetAudioBlockSize(48); 
 
     switch1[0]= Funbox::SWITCH_1_LEFT;
@@ -814,5 +852,12 @@ int main(void)
             HandleMidiMessage(hw.midi.PopEvent());
         }
 
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();        
     }
 }

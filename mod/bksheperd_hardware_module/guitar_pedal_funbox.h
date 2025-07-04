@@ -20,7 +20,7 @@ class GuitarPedalFunbox : public BaseHardwareModule
   public:
     GuitarPedalFunbox();
     ~GuitarPedalFunbox();
-    void Init(bool boost = false) override;
+    void Init(size_t blockSize, bool boost = false) override;
 };
 } // namespace bkshepherd
 #endif

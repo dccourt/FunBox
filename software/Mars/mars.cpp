@@ -17,6 +17,32 @@ using namespace daisy;
 using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
 
+#include "../funbox_display.h"
+
+const char* knobNames[] = {
+    "Gain",
+    "Mix",
+    "Level",
+    "Filter",
+    "Time",
+    "Delay FdBk",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Amp Model",
+    "Cab Model",
+    "Delay Mode"
+};
+
+const char* switchValueNames[] = {
+    "Mless SC30", "Klon clone", "Mesa iib+",
+    "Proteus IR", "Americn IR", "Rectfr IR",
+    "Normal", "Dotted 8th", "Triplet"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 Parameter Gain, Level, Mix, filter, delayTime, delayFdbk, expression;
@@ -572,6 +598,16 @@ int main(void)
     hw.Init();
     samplerate = hw.AudioSampleRate();
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(2, -1.0f, 1.0f);
+    display.SetKnobRange(4, -1.0f, 1.0f);
+    display.SetKnobRange(5, 0.0f, 2.0f, 2, "sec");
+    display.Fill(false); // Clear screen
+    display.SetBanner("Mars");
+    display.Update();
+
     setupWeights();
     hw.SetAudioBlockSize(48); // Up to 256 reduces stuttering when using 2 tap delay (due to processing)
 
@@ -651,12 +687,21 @@ int main(void)
     while(1)
     {
         if(trigger_save) {
-			
-	    SavedSettings.Save(); // Writing locally stored settings to the external flash
-	    trigger_save = false;
+            display.IndicateSaving();
+            SavedSettings.Save(); // Writing locally stored settings to the external flash
+            trigger_save = false;
             blink = 0;
-	}
-	System::Delay(100);
+    	}
+
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();
+
+        System::Delay(100);
 
     }
 }

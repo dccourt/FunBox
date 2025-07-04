@@ -18,6 +18,32 @@ using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
 using namespace soundmath;
 
+#include "../funbox_display.h"
+
+const char* knobNames[] = {
+    "Decay",
+    "Mix",
+    "Dampening",
+    "Shimmer",
+    "Tone",
+    "Detune",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Shimmer",
+    "LoFi Mode",
+    "Drift"
+};
+
+const char* switchValueNames[] = {
+    "Octave Dn", "Octave Up", "Both",
+    "Less", "None", "More",
+    "Less", "None", "More"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 Parameter decay, mix, damp, shimmer, shimmer_tone, detune, expression;
@@ -593,6 +619,15 @@ int main(void)
     hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ); // Currently needs to run at 32kHz and block size 256 to keep up with processing
     samplerate = hw.AudioSampleRate();
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(2, -1.0f, 1.0f);
+    display.SetKnobRange(6, -1.0f, 1.0f);
+    display.Fill(false); // Clear screen
+    display.SetBanner("Venus");
+    display.Update();
+
     hw.SetAudioBlockSize(256); // matching original code at 256, TODO test lower latency settings from note:
     // `N = 4096` and `laps = 4` (higher frequency resolution, greater latency), or when `N = 2048` and `laps = 8` (higher time resolution, less latency). 
            
@@ -692,6 +727,15 @@ int main(void)
         {
             HandleMidiMessage(hw.midi.PopEvent());
         }
+
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();
+        
 
         System::DelayUs(100);  //  KAB Note - 1/60 second is 16667
 

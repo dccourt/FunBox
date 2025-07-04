@@ -11,7 +11,7 @@ OPT=-Ofast
 
 
 # Sources
-CPP_SOURCES = uranus.cpp granularplayermod.cpp operator.cpp
+CPP_SOURCES = uranus.cpp granularplayermod.cpp operator.cpp ../funbox_display.cpp
 
 # Library Locations
 LIBDAISY_DIR = ../../libDaisy

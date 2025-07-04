@@ -6,6 +6,7 @@
 #include "delayline_reverse.h"
 #include "delayline_oct.h"
 #include "expressionHandler.h"
+#include "../../funbox_display.h"
 
 #include "../CloudSeed/Default.h"
 #include "../CloudSeed/ReverbController.h"
@@ -16,6 +17,8 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace funbox; 
+
+Display display;
 
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
@@ -66,6 +69,27 @@ float knobValues[6];
 int toggleValues[3];
 bool dipValues[4];
 
+const char* knobNames[] = {
+    "Decay",
+    "Mix",
+    "Delay Time",
+    "Modulation",
+    "Rev Filter",
+    "Delay FdBk",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "ReverbMode",
+    "Routing",
+    "Delay Mode"
+};
+
+const char* switchValueNames[] = {
+    "Chorus", "Med Space", "RubiKai",
+    "Some D>R", "Parallel", "Del>Rev",
+    "Normal", "Octave", "Reverse"
+};
 
 CloudSeed::ReverbController* reverb = 0;
 
@@ -471,7 +495,6 @@ void UpdateSwitches()
 
 }
 
-
 // This runs at a fixed rate, to prepare audio samples
 static void AudioCallback(AudioHandle::InputBuffer  in,
                           AudioHandle::OutputBuffer out,
@@ -526,7 +549,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
         else if (knobMoved(pknobValues[4], filter.Process()))  // If midi controlled, watch for knob movement to end Midi control
             midi_control[4] = false;
     
-
         // Knob 6
         if (!midi_control[5])   // If not under midi control, use knob ADC
             pknobValues[5] = knobValues[5] = delayFDBK.Process();
@@ -538,7 +560,6 @@ static void AudioCallback(AudioHandle::InputBuffer  in,
 
     float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
     expHandler.Process(vexpression, knobValues, newExpressionValues);
-
 
     // If in expression set mode, set LEDS accordingly
     if (expHandler.isExpressionSetMode()) {
@@ -787,9 +808,18 @@ void HandleMidiMessage(MidiEvent m)
 int main(void)
 {
     float samplerate;
+    float old_expression = 0.0f;
 
     hw.Init();
     samplerate = hw.AudioSampleRate();
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(2, -1.0f, 1.0f);
+    display.SetKnobRange(3, 0.0f, 4.0f, 2, "sec");
+    display.Fill(false); // Clear screen
+    display.SetBanner("Neptune");
+    display.Update();
 
     AudioLib::ValueTables::Init();
     CloudSeed::FastSin::Init();
@@ -810,6 +840,12 @@ int main(void)
     mix.Init(hw.knob[Funbox::KNOB_2], 0.0f, 1.0f, ::daisy::Parameter::LINEAR);
     filter.Init(hw.knob[Funbox::KNOB_5], 0.0f, 1.0f, ::daisy::Parameter::CUBE);
     expression.Init(hw.expression, 0.0f, 1.0f, Parameter::LINEAR); 
+
+    for (int ii = 0; ii <=5; ii++)
+    {
+        knobValues[ii] = 0.0f;
+        pknobValues[ii] = 0.0f;
+    }
 
     // Alternate Parameters
     alternateMode = false;
@@ -905,6 +941,7 @@ int main(void)
 
     hw.StartAdc();
     hw.StartAudio(AudioCallback);
+
     while(1)
     {
         hw.midi.Listen();
@@ -916,10 +953,32 @@ int main(void)
 
         if(trigger_save) {
 			
-	    SavedSettings.Save(); // Writing locally stored settings to the external flash
-	    trigger_save = false;
-        blink = 0;
+            SavedSettings.Save(); // Writing locally stored settings to the external flash
+            display.IndicateSaving();
+            trigger_save = false;
+            blink = 0;
 	    }
-	System::Delay(100);
+
+#if 0
+        // Debug the expression pedal
+
+        float vexpression = expression.Process(); // 0 is heel (up), 1 is toe (down)
+        if (vexpression != old_expression)
+        {
+            hw.seed.PrintLine("Exp: %d", (int)(vexpression * 100));
+        }
+        old_expression = vexpression;
+#endif
+
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();
+
+	    System::Delay(100);
     }
+
 }

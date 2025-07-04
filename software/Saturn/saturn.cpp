@@ -29,6 +29,32 @@ using namespace daisysp;
 using namespace funbox;  // This is important for mapping the correct controls to the Daisy Seed on Funbox PCB
 using namespace soundmath;
 
+#include "../funbox_display.h"
+
+const char* knobNames[] = {
+    "PreDelay",
+    "Mix",
+    "Filter",
+    "Time",
+    "Feedback",
+    "DriftMod",
+    "Expression"
+};
+
+const char* switchNames[] = {
+    "Time Mode",
+    "Feedback",
+    "Drift"
+};
+
+const char* switchValueNames[] = {
+    "Lin Incrse", "Sine Wave", "Random",
+    "Same/line", "Lin Decrse", "Random",
+    "Not PreDly", "None", "Inc PreDly"
+};
+
+Display display;
+
 // Declare a local daisy_petal for hardware access
 DaisyPetal hw;
 Parameter mod, mix, predelay, delay_time, delay_fdbk, filter, expression;
@@ -842,6 +868,18 @@ int main(void)
     hw.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ); // Can run at 32kHz to handle more delaylines,
     samplerate = hw.AudioSampleRate();
 
+    display.InitDisplayI2C(hw);
+    display.SetSwitchNames(switchNames, switchValueNames);
+    display.SetKnobNames(6, knobNames);
+    display.SetKnobRange(1, 0.0f, 1.0f, 2, "sec");
+    display.SetKnobRange(2, -1.0f, 1.0f);
+    display.SetKnobRange(3, -1.0f, 1.0f);
+    display.SetKnobRange(4, 0.0f, 4.0f, 2, "sec");
+    display.SetKnobRange(6, 0.0f, 1.0f, 2, "Hz");
+    display.Fill(false); // Clear screen
+    display.SetBanner("Saturn");
+    display.Update();
+
     hw.SetAudioBlockSize(256); // less than 256 causes audio dropouts
            
 
@@ -975,12 +1013,21 @@ int main(void)
         }
 
         if(trigger_save) {
-	    SavedSettings.Save(); // Writing locally stored settings to the external flash
-	    trigger_save = false;
+            display.IndicateSaving();
+            SavedSettings.Save(); // Writing locally stored settings to the external flash
+            trigger_save = false;
             blink = 0;
-	}
+	    }
 
-	System::Delay(100);
+        // Report on knob movement to the user
+        display.CheckKnobMovement(knobValues);
+
+        // And switch changes
+        display.CheckSwitchChanges();
+
+        display.Process();        
+
+	    System::Delay(100);
 
     }
 
